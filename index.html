@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Migration Heroku vers AWS | CTO Startup</title>
+    <style>
+        :root {
+            --primary: #232f3e;
+            --accent: #ff9900;
+            --text: #333;
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+        }
+        
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--primary);
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+        
+        nav {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        nav a:hover {
+            color: var(--accent);
+        }
+        
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent);
+        }
+        
+        h3 {
+            color: var(--primary);
+            margin: 1.5rem 0 1rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: var(--primary);
+            color: white;
+        }
+        
+        tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .emoji-icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        
+        .alert-critical { background: #fee; border-left: 4px solid #c00; }
+        .alert-important { background: #ffeaa7; border-left: 4px solid #f39c12; }
+        .alert-info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+        }
+        
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        .architecture-diagram {
+            background: #f0f4f8;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--primary);
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,153,0,0.3);
+        }
+        
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8rem; }
+            section { padding: 1.5rem; }
+            nav ul { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🚀 Guide Migration Heroku vers AWS</h1>
+        <p>Exercice de raisonnement CTO - De Startup à Series A</p>
+        <span class="badge">OpenClaw x MiniMax-M2.5</span>
+    </header>
+    
+    <nav>
+        <ul>
+            <li><a href="#contexte">Contexte</a></li>
+            <li><a href="#contraintes">Contraintes</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#migration">Plan Migration</a></li>
+            <li><a href="#budget">Budget</a></li>
+            <li><a href="#risques">Risques</a></li>
+        </ul>
+    </nav>
+    
+    <main>
+        <section id="contexte">
+            <h2>📋 Contexte du Scénario</h2>
+            <p>Cet exercice de raisonnement a été réalisé par <strong>Alfred</strong> (assistant IA OpenClaw) pour tester ses capacités de réflexion stratégique.</p>
+            
+            <h3>Entreprise</h3>
+            <ul>
+                <li><strong>Équipe tech :</strong> 10 personnes (2 seniors, 1 junior, 1 ops)</li>
+                <li><strong>Stack actuelle :</strong> Heroku</li>
+                <li><strong>Objectif :</strong> Migration vers AWS pour préparer Series A</li>
+            </ul>
+            
+            <div class="alert alert-info">
+                <strong>💡 Point clé :</strong> L'exercice teste la capacité à prendre des décisions sous contraintes multiples avec des ressources limitées.
+            </div>
+        </section>
+        
+        <section id="contraintes">
+            <h2>⚠️ Analyse des Contraintes</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Contrainte</th>
+                        <th>Impact</th>
+                        <th>Priorité</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Zero downtime</td>
+                        <td>Non-négociable</td>
+                        <td>🔴 Critique</td>
+                    </tr>
+                    <tr>
+                        <td>Budget 50K€/mois</td>
+                        <td>Limite forte</td>
+                        <td>🟡 Important</td>
+                    </tr>
+                    <tr>
+                        <td>3 mois</td>
+                        <td>Timeline serrée</td>
+                        <td>🟡 Important</td>
+                    </tr>
+                    <tr>
+                        <td>Équipe limitée (4 tech)</td>
+                        <td>Capacité restreinte</td>
+                        <td>🟡 Important</td>
+                    </tr>
+                    <tr>
+                        <td>Series A readiness</td>
+                        <td>Objectif business</td>
+                        <td>🔴 Critique</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <section id="architecture">
+            <h2>🏗️ Architecture AWS Recommandée</h2>
+            
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────┐
+│                 Route 53 (DNS)              │
+└─────────────────┬───────────────────────────┘
+                  │
+        ┌─────────▼─────────┐
+        │   ALB (Load Balancer)│
+        └─────────┬─────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    │             │             │
+┌───▼───┐   ┌────▼────┐   ┌───▼───┐
+│ ECS Fargate │ │ ECS Fargate │ │Lambda │
+│  (App API)  │ │ (Workers)  │ │(Edge) │
+└─────┬───┘   └────┬────┘   └───┬───┘
+      │             │             │
+      └─────────────┼─────────────┘
+                ┌───▼───┐
+                │  RDS  │
+                │(Postgres)│
+                └───┬───┘
+                    │
+                ┌───▼───┐
+                │ElastiCache│
+                │ (Redis)  │
+                └─────────┘
+            </div>
+            
+            <h3>Choix techniques justifiés</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Choix</th>
+                        <th>Justification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Compute</td>
+                        <td>ECS Fargate</td>
+                        <td>Serverless, pas de gestion infra</td>
+                    </tr>
+                    <tr>
+                        <td>Database</td>
+                        <td>RDS PostgreSQL</td>
+                        <td>Managed, haute dispo</td>
+                    </tr>
+                    <tr>
+                        <td>Cache</td>
+                        <td>ElastiCache Redis</td>
+                        <td>Latence faible</td>
+                    </tr>
+                    <tr>
+                        <td>Load Balancer</td>
+                        <td>ALB</td>
+                        <td>SSL automatique</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <section id="migration">
+            <h2>📅 Plan de Migration (3 mois)</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Phase</th>
+                        <th>Durée</th>
+                        <th>Objectif</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Phase 1 : Préparation</td>
+                        <td>Semaines 1-3</td>
+                        <td>Setup infra AWS, pipelines CI/CD, tests</td>
+                    </tr>
+                    <tr>
+                        <td>Phase 2 : Parallèle</td>
+                        <td>Semaines 4-5</td>
+                        <td>Traffic miroir (10-50%) vers AWS</td>
+                    </tr>
+                    <tr>
+                        <td>Phase 3 : Cutover</td>
+                        <td>Semaines 6-8</td>
+                        <td>Flip progressif avec rollback plan</td>
+                    </tr>
+                    <tr>
+                        <td>Phase 4 : Stabilisation</td>
+                        <td>Semaines 9-12</td>
+                        <td>Monitoring, optimisations</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <section id="budget">
+            <h2>💰 Budget Prévisionnel</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Configuration</th>
+                        <th>Coût estimé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ECS Fargate (API + Workers)</td>
+                        <td>4 vCPU, 16GB, 2 services</td>
+                        <td>~2 500$/mois</td>
+                    </tr>
+                    <tr>
+                        <td>RDS PostgreSQL (prod)</td>
+                        <td>db.r6g.xlarge</td>
+                        <td>~1 200$/mois</td>
+                    </tr>
+                    <tr>
+                        <td>ElastiCache Redis</td>
+                        <td>cache.r6g.xlarge</td>
+                        <td>~400$/mois</td>
+                    </tr>
+                    <tr>
+                        <td>S3, CloudFront, Route53, ALB</td>
+                        <td>-</td>
+                        <td>~500$/mois</td>
+                    </tr>
+                    <tr style="background: #e8f5e9;">
+                        <td><strong>Total infrastructure</strong></td>
+                        <td></td>
+                        <td><strong>~4 600$/mois</strong></td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td>Marge/disaster recovery</td>
+                        <td></td>
+                        <td>~700$</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="alert alert-important">
+                <strong>✅ Budget respecté :</strong> ~38K€/mois剩余 pour croissance future
+            </div>
+        </section>
+        
+        <section id="risques">
+            <h2>⚠️ Analyse des Risques</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Risque</th>
+                        <th>Probabilité</th>
+                        <th>Impact</th>
+                        <th>Mitigation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Compétence AWS limitée</td>
+                        <td>Haute</td>
+                        <td>Fort</td>
+                        <td>Formation + expert externe</td>
+                    </tr>
+                    <tr>
+                        <td>Zero downtime fail</td>
+                        <td>Moyenne</td>
+                        <td>Critique</td>
+                        <td>Blue/green deployment</td>
+                    </tr>
+                    <tr>
+                        <td>Délai</td>
+                        <td>Haute</td>
+                        <td>Fort</td>
+                        <td>MVP infra d'abord</td>
+                    </tr>
+                    <tr>
+                        <td>Junior can't keep up</td>
+                        <td>Moyenne</td>
+                        <td>Moyen</td>
+                        <td>Pair programming</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <section>
+            <h2>🎯 Recommandation Finale</h2>
+            
+            <h3>Migration ECS Fargate + RDS</h3>
+            
+            <p><strong>理由 (raisons) :</strong></p>
+            <ol>
+                <li><strong>Gestion de la complexité</strong> : Docker = familier pour les devs</li>
+                <li><strong>Coût</strong> : Within budget avec marge</li>
+                <li><strong>Scalabilité</strong> : AWS Auto Scaling intégré</li>
+                <li><strong>Stratégie</strong> : Compatible blue/green deployment</li>
+            </ol>
+            
+            <div class="alert alert-critical">
+                <strong>💡 Réflexion clé :</strong>
+                <p><em>"Les CTOs qui réussissent ne cherchent pas 'la meilleure infra' — ils cherchent la plus adaptée aux contraintes du moment."</em></p>
+                <p> Ici : petite équipe, budget serré, timeline courte = <strong>pragmatisme > perfection technique</strong></p>
+            </div>
+        </section>
+        
+        <section>
+            <h2>🔗 Ressources</h2>
+            <ul>
+                <li><a href="https://aws.amazon.com/ecs/" target="_blank">AWS ECS Documentation</a></li>
+                <li><a href="https://aws.amazon.com/rds/" target="_blank">AWS RDS Documentation</a></li>
+                <li><a href="https://docs.openclaw.ai" target="_blank">OpenClaw Documentation</a></li>
+            </ul>
+        </section>
+    </main>
+    
+    <footer>
+        <p>🦞 <strong>Alfred</strong> - Exercice de raisonnement OpenClaw avec MiniMax-M2.5</p>
+        <p>Généré le 21 février 2026</p>
+        <a href="https://github.com/alfredfaeric/cto-migration-guide" class="cta-button">
+            Voir sur GitHub →
+        </a>
+    </footer>
+</body>
+</html>
