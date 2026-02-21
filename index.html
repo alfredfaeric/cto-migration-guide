@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guide Migration Heroku vers AWS | CTO Startup</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#ff9900',
+                primaryTextColor: '#232f3e',
+                primaryBorderColor: '#232f3e',
+                lineColor: '#666',
+                secondaryColor: '#00A8E1',
+                tertiaryColor: '#3F8624'
+            }
+        });
+    </script>
     <style>
         :root {
             --primary: #232f3e;
@@ -159,14 +174,11 @@
             padding: 0;
         }
         
-        .architecture-diagram {
-            background: #f0f4f8;
+        .mermaid {
+            background: #1e1e1e;
             padding: 2rem;
-            border-radius: 8px;
-            text-align: center;
-            font-family: monospace;
-            white-space: pre;
-            overflow-x: auto;
+            border-radius: 12px;
+            margin: 1rem 0;
         }
         
         footer {
@@ -279,32 +291,43 @@
         <section id="architecture">
             <h2>🏗️ Architecture AWS Recommandée</h2>
             
-            <div class="architecture-diagram">
-┌─────────────────────────────────────────────┐
-│                 Route 53 (DNS)              │
-└─────────────────┬───────────────────────────┘
-                  │
-        ┌─────────▼─────────┐
-        │   ALB (Load Balancer)│
-        └─────────┬─────────┘
-                  │
-    ┌─────────────┼─────────────┐
-    │             │             │
-┌───▼───┐   ┌────▼────┐   ┌───▼───┐
-│ ECS Fargate │ │ ECS Fargate │ │Lambda │
-│  (App API)  │ │ (Workers)  │ │(Edge) │
-└─────┬───┘   └────┬────┘   └───┬───┘
-      │             │             │
-      └─────────────┼─────────────┘
-                ┌───▼───┐
-                │  RDS  │
-                │(Postgres)│
-                └───┬───┘
-                    │
-                ┌───▼───┐
-                │ElastiCache│
-                │ (Redis)  │
-                └─────────┘
+            <div class="mermaid">
+            flowchart LR
+                subgraph Internet["🌐 Internet"]
+                    DNS[("📡 Route 53<br/>DNS")]
+                end
+                
+                subgraph AWS["☁️ AWS Cloud"]
+                    LB[("⚖️ ALB<br/>Load Balancer")]
+                    
+                    subgraph Compute["💻 Compute"]
+                        API[("🐳 ECS Fargate<br/>App API")]
+                        Workers[("⚙️ ECS Fargate<br/>Workers")]
+                        Lambda[("λ Lambda<br/>Edge Functions")]
+                    end
+                    
+                    subgraph Data["💾 Data Layer"]
+                        RDS[("🗄️ RDS<br/>PostgreSQL")]
+                        Cache[("⚡ ElastiCache<br/>Redis")]
+                    end
+                end
+                
+                DNS --> LB
+                LB --> API
+                LB --> Workers
+                LB --> Lambda
+                API --> RDS
+                API --> Cache
+                Workers --> RDS
+                Workers --> Cache
+                
+                classDef aws fill:#232f3e,stroke:#ff9900,stroke-width:3px,color:#fff
+                classDef service fill:#00A8E1,stroke:#232f3e,stroke-width:2px,color:#fff
+                classDef data fill:#3F8624,stroke:#232f3e,stroke-width:2px,color:#fff
+                
+                class LB,API,Workers,Lambda,RDS,Cache aws
+                class DNS service
+                class RDS,Cache data
             </div>
             
             <h3>Choix techniques justifiés</h3>
